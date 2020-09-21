@@ -32,6 +32,10 @@ python3 train/train_tpu.py --input_file gs://kogpt2/datasets/WEB* --output_dir g
 
 ## Disclaimer
 The contents in this repository are for academic research purpose, and we do not provide any conclusive remarks.
+Currently, the underlying model is same as GPT-2. I'm working on the alternating layers.
+
+If you want GPT-2, just change the context token length from 2048 to 1024 and it's practically the same.
+Refer to the original paper for specific hyperparameter settings.
 
 ## Acknowledgements
 This research wouldn't have been possible without the TFRC program and NIPA's HPC Support Program.
