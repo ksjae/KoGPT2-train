@@ -33,6 +33,9 @@ python3 train/train_tpu.py --input_file gs://kogpt2/datasets/WEB* --output_dir g
 ## Disclaimer
 The contents in this repository are for academic research purpose, and we do not provide any conclusive remarks.
 
+## Acknowledgements
+This research wouldn't have been possible without the TFRC program and NIPA's HPC Support Program.
+
 ## Citation
 
 ```
