@@ -34,6 +34,10 @@ python3 train/train_tpu.py --input_file gs://kogpt2/datasets/WEB* --output_dir g
 ## 경고
 The contents in this repository are for academic research purpose, and we do not provide any conclusive remarks.
 
+## 감사의 말
+구글 TFRC 프로그램이 없었다면 큰 모델 훈련이 불가능했을 것입니다. 감사합니다.
+이 코드와 모델은 정보화진흥원의 고성능컴퓨팅지원사업에서 처음 출발했습니다. 이 프로그램 덕분에 비싼 구글 클라우드 대신 무료로 전처리를 할 수 있었습니다.
+
 ## 인용
 
 ```
