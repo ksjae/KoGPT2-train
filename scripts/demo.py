@@ -4,23 +4,11 @@ import argparse
 import json
 import re
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 import numpy as np
 
 from train.modeling import GroverModel, GroverConfig, sample
-from tokenization import tokenization
-
-##### ignore tf deprecated warning temporarily
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-tf.logging.set_verbosity(tf.logging.DEBUG)
-from tensorflow.python.util import deprecation
-deprecation._PRINT_DEPRECATION_WARNINGS = False
-try:
-    from tensorflow.python.util import module_wrapper as deprecation
-except ImportError:
-    from tensorflow.python.util import deprecation_wrapper as deprecation
-deprecation._PER_MODULE_WARNING_LIMIT = 0
-#####
+from tokenizers import ByteLevelBPETokenizer
 
 parser = argparse.ArgumentParser(description='Contextual generation (aka given some metadata we will generate articles')
 parser.add_argument(
@@ -100,7 +88,7 @@ parser.add_argument(
 parser.add_argument(
     '-min_len',
     dest='min_len',
-    default=1024,
+    default=128,
     type=int,
     help='min length of sample',
 )
@@ -119,7 +107,7 @@ parser.add_argument(
     help='num_samples',
 )
 
-def extract_generated_target(output_tokens, tokenizer):
+def extract_generated_target(output_tokens):
     """
     Given some tokens that were generated, extract the target
     :param output_tokens: [num_tokens] thing that was generated
@@ -134,14 +122,13 @@ def extract_generated_target(output_tokens, tokenizer):
     end_ind = output_tokens.shape[0]
 
     return {
-        'extraction': tokenization.printable_text(''.join(tokenizer.convert_ids_to_tokens(output_tokens))),
+        'extraction': tokenizer.decode(output_tokens),
         'start_ind': start_ind,
         'end_ind': end_ind,
     }
 
 args = parser.parse_args()
 proj_root_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-vocab_file_path = os.path.join(proj_root_path, "tokenization/clue-vocab.txt")
 tokenizer = tokenization.FullTokenizer(vocab_file=vocab_file_path , do_lower_case=True)
 news_config = GroverConfig.from_json_file(args.config_fn)
 
@@ -158,44 +145,43 @@ top_p = np.ones((num_chunks, batch_size_per_chunk), dtype=np.float32) * args.top
 
 tf_config = tf.ConfigProto(allow_soft_placement=True)
 
-with tf.Session(config=tf_config, graph=tf.Graph()) as sess:
-    initial_context = tf.placeholder(tf.int32, [batch_size_per_chunk, None])
-    p_for_topp = tf.placeholder(tf.float32, [batch_size_per_chunk])
-    eos_token = tf.placeholder(tf.int32, [])
-    min_len = tf.placeholder(tf.int32, [])
-    tokens, probs = sample(news_config=news_config, initial_context=initial_context,
-                           eos_token=eos_token, min_len=min_len, ignore_ids=None, p_for_topp=p_for_topp,
-                           do_topk=False)
+initial_context = tf.placeholder(tf.int32, [batch_size_per_chunk, None])
+p_for_topp = tf.placeholder(tf.float32, [batch_size_per_chunk])
+eos_token = tf.placeholder(tf.int32, [])
+min_len = tf.placeholder(tf.int32, [])
+tokens, probs = sample(news_config=news_config, initial_context=initial_context,
+                        eos_token=eos_token, min_len=min_len, ignore_ids=None, p_for_topp=p_for_topp,
+                        do_topk=False)
 
-    saver = tf.train.Saver()
-    saver.restore(sess, args.ckpt_fn)
-    print('🍺Model loaded. \nInput something please:⬇️')
-    text = input()
-    while text != "":
-        for i in range(args.samples):
-            print("Sample,", i + 1, " of ", args.samples)
-            line = tokenization.convert_to_unicode(text)
-            bert_tokens = tokenizer.tokenize(line)
-            encoded = tokenizer.convert_tokens_to_ids(bert_tokens)
-            context_formatted = []
-            context_formatted.extend(encoded)
-            # Format context end
+saver = tf.train.Saver()
+saver.restore(sess, args.ckpt_fn)
+print('🍺Model loaded. \nInput something please:⬇️')
+text = input("ENTER TEXT: ")
+tokenizer = ByteLevelBPETokenizer('../dataset/kotok/vocab.json', '../dataset/kotok/merges.txt')
+while text != "":
+    for i in range(args.samples):
+        print("Sample,", i + 1, " of ", args.samples)
+        tokenization = tokenizer.encode(text)
+        encoded = tokenization.ids
+        context_formatted = []
+        context_formatted.extend(encoded)
+        # Format context end
 
-            gens = []
-            gens_raw = []
-            gen_probs = []
+        gens = []
+        gens_raw = []
+        gen_probs = []
 
-            for chunk_i in range(num_chunks):
-                tokens_out, probs_out = sess.run([tokens, probs],
-                                                 feed_dict={initial_context: [context_formatted] * batch_size_per_chunk,
-                                                            eos_token: args.eos_token, min_len: args.min_len,
-                                                            p_for_topp: top_p[chunk_i]})
+        for chunk_i in range(num_chunks):
+            tokens_out, probs_out = sess.run([tokens, probs],
+                                                feed_dict={initial_context: [context_formatted] * batch_size_per_chunk,
+                                                        eos_token: args.eos_token, min_len: args.min_len,
+                                                        p_for_topp: top_p[chunk_i]})
 
-                for t_i, p_i in zip(tokens_out, probs_out):
-                    extraction = extract_generated_target(output_tokens=t_i, tokenizer=tokenizer)
-                    gens.append(extraction['extraction'])
+            for t_i, p_i in zip(tokens_out, probs_out):
+                extraction = extract_generated_target(output_tokens=t_i, tokenizer=tokenizer)
+                gens.append(extraction['extraction'])
 
-            l = re.findall('.{1,70}', gens[0].replace('[UNK]', '').replace('##', ''))
-            print("\n".join(l))
-        print('Next try:⬇️')
-        text = input()
+        l = re.findall('.{1,70}', gens[0].replace('[UNK]', '').replace('##', ''))
+        print("\n".join(l))
+    print('Next try:⬇️')
+    text = input("ENTER TEXT: ")
