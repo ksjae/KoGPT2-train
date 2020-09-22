@@ -23,6 +23,7 @@ import re
 import unicodedata
 import six
 import tensorflow.compat.v1 as tf
+from tokenizers import ByteLevelBPETokenizer
 
 
 def validate_case_matches_checkpoint(do_lower_case, init_checkpoint):
@@ -166,20 +167,16 @@ class FullTokenizer(object):
     self.inv_vocab = {v: k for k, v in self.vocab.items()}
     self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case)
     self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
+    self.tokenizer = ByteLevelBPETokenizer(vocab_file + '/vocab.json', vocab_file + '/merges.txt')
 
   def tokenize(self, text):
-    split_tokens = []
-    for token in self.basic_tokenizer.tokenize(text):
-      for sub_token in self.wordpiece_tokenizer.tokenize(token):
-        split_tokens.append(sub_token)
-
-    return split_tokens
+    return self.tokenizer.encode(text).tokens
 
   def convert_tokens_to_ids(self, tokens):
-    return convert_by_vocab(self.vocab, tokens)
+    return self.tokenizer.encode(tokens, is_pretokenized=True).ids
 
   def convert_ids_to_tokens(self, ids):
-    return convert_by_vocab(self.inv_vocab, ids)
+    return self.tokenizer.decode(tokens).tokens
 
 
 class BasicTokenizer(object):
