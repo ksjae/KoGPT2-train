@@ -1,0 +1,4 @@
+*.pyc
+.vscode
+tokenization/__pycache__/*
+train/__pycache__/*
