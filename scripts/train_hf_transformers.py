@@ -4,6 +4,7 @@ from functools import partial, wraps
 import numpy as np
 import pandas as pd
 from transformers import TFGPT2LMHeadModel
+from transformers.file_utils import hf_bucket_url, TF2_WEIGHTS_NAME
 import tensorflow as tf
 
 class FixedDataset(Dataset):
@@ -88,8 +89,12 @@ ds = FixedDataset.from_file('../WRITTEN/dataset.arrow')
 ds.set_format(type='tensorflow', columns=['input_ids'], shape=[2048])
 mirrored_strategy = tf.distribute.MirroredStrategy(devices=["/gpu:0", "/gpu:1"])
 with mirrored_strategy.scope():
-    model = TFGPT2LMHeadModel.from_pretrained('gpt2')
+    config_name = 'gpt2'
+    model = TFGPT2LMHeadModel.from_pretrained(config_name)
+    gpt2_weights_file_url = hf_bucket_url(config_name, filename=TF2_WEIGHTS_NAME)
+    gpt2_weights_file = cached_path(bert_weights_file_url)
+    model.load_weights(gpt2_weights_file, by_name=True)
     optimizer = tf.keras.optimizers.Adam(learning_rate=3e-5)
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     model.compile(optimizer=optimizer, loss=loss)
-model.fit(tf.data.Dataset.from_tensor_slices(ds['input_ids']), epochs=2, steps_per_epoch=115)
+    model.fit(tf.data.Dataset.from_tensor_slices(ds['input_ids']), epochs=2, steps_per_epoch=115)
