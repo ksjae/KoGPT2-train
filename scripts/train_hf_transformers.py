@@ -3,7 +3,7 @@ from datasets.utils import map_nested
 from functools import partial, wraps
 import numpy as np
 import pandas as pd
-from transformers import TFGPT2LMHeadModel
+from transformers.modeling_tf_gpt2 import TFGPT2LMHeadModel
 from transformers.file_utils import hf_bucket_url, TF2_WEIGHTS_NAME
 import tensorflow as tf
 
