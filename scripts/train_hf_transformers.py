@@ -1,7 +1,10 @@
 from datasets import Dataset
-import tensorflow as tf
+from datasets.utils import map_nested
+from functools import partial, wraps
+import numpy as np
+import pandas as pd
 from transformers import TFGPT2LMHeadModel
-
+import tensorflow as tf
 
 class FixedDataset(Dataset):
     def _convert_outputs(
@@ -45,12 +48,17 @@ class FixedDataset(Dataset):
                     x, (list, tuple, np.ndarray)
                 ):  # add support for nested types like struct of list of struct
                     x = np.array(x, copy=False)
+                    x = x[:2048]
+                    x = np.pad(x, (0,2048-len(x)), 'constant', constant_values=0)
                     if x.dtype == np.object:  # tensorflow tensors can sometimes be instantied from an array of objects
                         try:
-                            return tensorflow.ragged.constant(x, **format_kwargs)
+                            return tensorflow.constant(x, **format_kwargs)
                         except ValueError:
                             return [map_nested(command, i, **map_nested_kwargs) for i in x]
-                return tensorflow.ragged.constant(x, **format_kwargs).to_tensor()
+                t = tensorflow.constant(x, **format_kwargs)
+                #paddings = [[0,0], [0,2048-tf.shape(t)[0]]]
+                #return tf.pad(t, paddings, 'CONSTANT', constant_values=-1)
+                return t
 
         else:
 
@@ -76,12 +84,12 @@ class FixedDataset(Dataset):
                 output_dict[k] = v
         return output_dict
 
-ds = FixedDataset.from_file('/home/ksjae/kogpt-2/WRITTEN')
-model = TFGPT2LMHeadModel.from_pretrained('gpt2')
-
+ds = FixedDataset.from_file('../WRITTEN/dataset.arrow')
+ds.set_format(type='tensorflow', columns=['input_ids'], shape=[2048])
 mirrored_strategy = tf.distribute.MirroredStrategy(devices=["/gpu:0", "/gpu:1"])
 with mirrored_strategy.scope():
+    model = TFGPT2LMHeadModel.from_pretrained('gpt2')
     optimizer = tf.keras.optimizers.Adam(learning_rate=3e-5)
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     model.compile(optimizer=optimizer, loss=loss)
-model.fit(ds, epochs=2, steps_per_epoch=115)
+model.fit(tf.data.Dataset.from_tensor_slices(ds['input_ids']), epochs=2, steps_per_epoch=115)
