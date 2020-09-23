@@ -2,3 +2,4 @@
 .vscode
 tokenization/__pycache__/*
 train/__pycache__/*
+models/

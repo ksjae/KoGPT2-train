@@ -10,6 +10,12 @@ import numpy as np
 from train.modeling import GroverModel, GroverConfig, sample
 from tokenization import tokenization
 
+import argparse
+import logging
+from tqdm import trange
+
+import socket
+
 ##### ignore tf deprecated warning temporarily
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.logging.set_verbosity(tf.logging.DEBUG)
@@ -44,14 +50,14 @@ parser.add_argument(
 parser.add_argument(
     '-config_fn',
     dest='config_fn',
-    default='configs/base.json',
+    default='configs/large.json',
     type=str,
     help='Configuration JSON for the model',
 )
 parser.add_argument(
     '-ckpt_fn',
     dest='ckpt_fn',
-    default='gs://kogpt2/models/base/model.ckpt-75000',
+    default='models/large/model.ckpt-75000',
     type=str,
     help='checkpoint file for the model',
 )
@@ -155,46 +161,58 @@ batch_size_per_chunk = int(np.ceil(args.batch_size / num_chunks))
 # This controls the top p for each generation.
 top_p = np.ones((num_chunks, batch_size_per_chunk), dtype=np.float32) * args.top_p
 
-tf_config = tf.ConfigProto(allow_soft_placement=True)
-tf_config.gpu_options.allow_growth = True
-with tf.device('/device:XLA_GPU:0'):
-    with tf.Session(config=tf_config, graph=tf.Graph()) as sess:
-        initial_context = tf.placeholder(tf.int32, [batch_size_per_chunk, None])
-        p_for_topp = tf.placeholder(tf.float32, [batch_size_per_chunk])
-        eos_token = tf.placeholder(tf.int32, [])
-        min_len = tf.placeholder(tf.int32, [])
-        tokens, probs = sample(news_config=news_config, initial_context=initial_context,
-                            eos_token=eos_token, min_len=min_len, ignore_ids=None, p_for_topp=p_for_topp,
-                            do_topk=False)
+def gen(text, length):
+    line = tokenization.convert_to_unicode(text)
+    encoded = tokenizer.tokenize(line)
+    context_formatted = []
+    context_formatted.extend(encoded)
+    # Format context end
 
-        saver = tf.train.Saver()
-        saver.restore(sess, args.ckpt_fn)
-        print('🍺Model loaded. \nInput something please:⬇️')
-        text = input()
-        while text != "":
-            for i in range(args.samples):
-                print("Sample,", i + 1, " of ", args.samples)
-                line = tokenization.convert_to_unicode(text)
-                encoded = tokenizer.tokenize(line)
-                context_formatted = []
-                context_formatted.extend(encoded)
-                # Format context end
+    gens = []
+    gens_raw = []
+    gen_probs = []
 
-                gens = []
-                gens_raw = []
-                gen_probs = []
+    for chunk_i in range(num_chunks):
+        tokens_out, probs_out = sess.run([tokens, probs],
+                                        feed_dict={initial_context: [context_formatted] * batch_size_per_chunk,
+                                                    eos_token: args.eos_token, min_len: int(length),
+                                                    p_for_topp: top_p[chunk_i]})
 
-                for chunk_i in range(num_chunks):
-                    tokens_out, probs_out = sess.run([tokens, probs],
-                                                    feed_dict={initial_context: [context_formatted] * batch_size_per_chunk,
-                                                                eos_token: args.eos_token, min_len: args.min_len,
-                                                                p_for_topp: top_p[chunk_i]})
+        for t_i, p_i in zip(tokens_out, probs_out):
+            extraction = extract_generated_target(output_tokens=t_i, tokenizer=tokenizer)
+            gens.append(extraction['extraction'])
 
-                    for t_i, p_i in zip(tokens_out, probs_out):
-                        extraction = extract_generated_target(output_tokens=t_i, tokenizer=tokenizer)
-                        gens.append(extraction['extraction'])
+    l = re.findall('.{1,70}', gens[0].replace('[UNK]', '').replace('to', ''))
+    result = "".join(l)
+    return result
 
-                l = re.findall('.{1,70}', gens[0].replace('<|endoftext|>', '').replace('##', ''))
-                print(" ".join(l))
-            print('Next try:⬇️')
-            text = input()
+
+if __name__ == '__main__':
+    tf_config = tf.ConfigProto(allow_soft_placement=True)
+    tf_config.gpu_options.allow_growth = True
+    with tf.device('/device:XLA_GPU:0'):
+        with tf.Session(config=tf_config, graph=tf.Graph()) as sess:
+            initial_context = tf.placeholder(tf.int32, [batch_size_per_chunk, None])
+            p_for_topp = tf.placeholder(tf.float32, [batch_size_per_chunk])
+            eos_token = tf.placeholder(tf.int32, [])
+            min_len = tf.placeholder(tf.int32, [])
+            tokens, probs = sample(news_config=news_config, initial_context=initial_context,
+                                eos_token=eos_token, min_len=min_len, ignore_ids=None, p_for_topp=p_for_topp,
+                                do_topk=False)
+
+            saver = tf.train.Saver()
+            saver.restore(sess, args.ckpt_fn)
+            print('🍺Model loaded. \nLet\'s serve!')
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('127.0.0.1', '47862'))
+                s.listen()
+                conn, addr = s.accept()
+                with conn:
+                    data = b""
+                    while True:
+                        data_pt = conn.recv(1024)
+                        if not data_pt:
+                            break
+                        data += data_pt
+                    text, length = ast.literal_eval(data)
+                    conn.sendall(repr(gen(text, length)))
