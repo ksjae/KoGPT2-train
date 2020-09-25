@@ -168,7 +168,7 @@ with tf.device('/device:XLA_GPU:0'):
                             do_topk=False)
 
         saver = tf.train.Saver()
-        saver.restore(sess, args.ckpt_fn)
+        saver.restore(sess, tf.train.latest_checkpoint(args.ckpt_fn))
         print('🍺Model loaded. \nInput something please:⬇️')
         text = input()
         while text != "":

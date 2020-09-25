@@ -4,7 +4,7 @@ from functools import partial, wraps
 import numpy as np
 import pandas as pd
 from transformers.modeling_tf_gpt2 import TFGPT2LMHeadModel
-from transformers.file_utils import hf_bucket_url, TF2_WEIGHTS_NAME
+from transformers.file_utils import hf_bucket_url, TF2_WEIGHTS_NAME, cached_path
 import tensorflow as tf
 
 class FixedDataset(Dataset):
@@ -92,7 +92,7 @@ with mirrored_strategy.scope():
     config_name = 'gpt2'
     model = TFGPT2LMHeadModel.from_pretrained(config_name)
     gpt2_weights_file_url = hf_bucket_url(config_name, filename=TF2_WEIGHTS_NAME)
-    gpt2_weights_file = cached_path(bert_weights_file_url)
+    gpt2_weights_file = cached_path(gpt2_weights_file_url)
     model.load_weights(gpt2_weights_file, by_name=True)
     optimizer = tf.keras.optimizers.Adam(learning_rate=3e-5)
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
