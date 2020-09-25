@@ -2,9 +2,9 @@ pandas==0.24.2
 regex==2019.4.14
 h5py==2.10.0
 numpy==1.18.4
-tensorboard==1.15.0
-tensorflow==1.15.2
-tensorflow-estimator==1.15.1
+tensorboard==2.3.0
+tensorflow==2.3.0
+tensorflow-estimator==2.3.0
 tqdm==4.31.1
 requests==2.22.0
 ujson==2.0.3
