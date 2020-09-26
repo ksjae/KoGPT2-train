@@ -18,7 +18,7 @@
 import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
 
-from train.dataloader import input_fn_builder
+from train.dataloader import input_fn_builder, _decode_record
 from train.modeling import model_fn_builder, GroverConfig
 
 flags = tf.flags
@@ -153,10 +153,18 @@ def main(_):
     try:
         estimator.train(input_fn=train_input_fn, max_steps=FLAGS.num_train_steps)
     except KeyboardInterrupt:
-        serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn({
-            "input_ids": tf.io.FixedLenFeature([seq_length + 1], tf.int32),
-        })
-        export_path = estimator.export_saved_model("./model_save", serving_input_fn)
+        def serving_input_receiver_fn():
+            """Serving input_fn that builds features from placeholders
+
+            Returns
+            -------
+            tf.estimator.export.ServingInputReceiver
+            """
+            number = tf.placeholder(dtype=tf.int32, shape=[FLAGS.max_seq_length + 1], name='input_ids')
+            receiver_tensors = {'input_ids': number}
+            return tf.estimator.export.ServingInputReceiver(number, receiver_tensors)
+        
+        export_path = estimator.export_saved_model("./model_save", serving_input_fn())
 
 if __name__ == "__main__":
     flags.mark_flag_as_required("input_file")
