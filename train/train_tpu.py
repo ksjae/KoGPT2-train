@@ -16,6 +16,7 @@
 """ Training script! """
 
 import tensorflow.compat.v1 as tf
+import tensorflow_datasets as tfds
 
 from train.dataloader import input_fn_builder
 from train.modeling import model_fn_builder, GroverConfig
@@ -153,7 +154,7 @@ def main(_):
         estimator.train(input_fn=train_input_fn, max_steps=FLAGS.num_train_steps)
     except KeyboardInterrupt:
         serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn({
-            "input_ids": tf.FixedLenFeature([FLAGS.max_seq_length + 1], tf.int64),
+            "input_ids": tf.io.FixedLenFeature([seq_length + 1], tf.int32),
         })
         export_path = estimator.export_saved_model("./model_save", serving_input_fn)
 
