@@ -149,7 +149,13 @@ def main(_):
         seq_length=FLAGS.max_seq_length,
         is_training=True)
 
-    estimator.train(input_fn=train_input_fn, max_steps=FLAGS.num_train_steps)
+    try:
+        estimator.train(input_fn=train_input_fn, max_steps=FLAGS.num_train_steps)
+    except KeyboardInterrupt:
+        serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn({
+            "input_ids": tf.FixedLenFeature([seq_length + 1], tf.int64),
+        }))
+        export_path = estimator.export_saved_model("./model_save", serving_input_fn)
 
 if __name__ == "__main__":
     flags.mark_flag_as_required("input_file")
