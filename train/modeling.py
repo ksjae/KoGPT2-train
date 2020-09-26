@@ -443,13 +443,21 @@ class GroverModel(object):
             self.config.attention_probs_dropout_prob = 0.0
 
         if chop_off_last_token:
-            self.target_ids = input_ids[:, 1:]
-            self.input_ids = input_ids[:, :-1]
+            try:
+                self.target_ids = input_ids[:, 1:]
+                self.input_ids = input_ids[:, :-1]
+            except: 
+                self.target_ids = input_ids[1:]
+                self.input_ids = input_ids[:-1]
         else:
             self.input_ids = input_ids
-            self.target_ids = tf.concat((input_ids[:, 1:],
-                                         tf.constant(self.pad_token_id, dtype=self.input_ids.dtype,
-                                                     shape=[get_shape_list(self.input_ids, 2)[0], 1])), 1)
+            try:
+                input_piece = input_ids[:, 1:]
+            except:
+                input_piece = input_ids[1:]
+            self.target_ids = tf.concat(input_piece,
+                                        tf.constant(self.pad_token_id, dtype=self.input_ids.dtype,
+                                                    shape=[get_shape_list(self.input_ids, 2)[0], 1])), 1)
 
         self.batch_size, self.seq_length = get_shape_list(self.input_ids, 2)
 
