@@ -153,8 +153,8 @@ def main(_):
         estimator.train(input_fn=train_input_fn, max_steps=FLAGS.num_train_steps)
     except KeyboardInterrupt:
         serving_input_fn = tf.estimator.export.build_parsing_serving_input_receiver_fn({
-            "input_ids": tf.FixedLenFeature([seq_length + 1], tf.int64),
-        }))
+            "input_ids": tf.FixedLenFeature([FLAGS.max_seq_length + 1], tf.int64),
+        })
         export_path = estimator.export_saved_model("./model_save", serving_input_fn)
 
 if __name__ == "__main__":
