@@ -160,11 +160,11 @@ def main(_):
             -------
             tf.estimator.export.ServingInputReceiver
             """
-            number = tf.placeholder(dtype=tf.int32, shape=[FLAGS.max_seq_length + 1], name='input_ids')
+            number = tf.placeholder(dtype=tf.int32, shape=[FLAGS.max_seq_length + 1], name='feature')
             receiver_tensors = {'input_ids': number}
             return tf.estimator.export.ServingInputReceiver(number, receiver_tensors)
         
-        export_path = estimator.export_saved_model("./model_save", serving_input_receiver_fn
+        export_path = estimator.export_saved_model("./model_save", serving_input_receiver_fn)
 
 if __name__ == "__main__":
     flags.mark_flag_as_required("input_file")

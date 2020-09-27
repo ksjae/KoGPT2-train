@@ -455,7 +455,7 @@ class GroverModel(object):
                 input_piece = input_ids[:, 1:]
             except:
                 input_piece = input_ids[1:]
-            self.target_ids = tf.concat(input_piece,
+            self.target_ids = tf.concat((input_piece,
                                         tf.constant(self.pad_token_id, dtype=self.input_ids.dtype,
                                                     shape=[get_shape_list(self.input_ids, 2)[0], 1])), 1)
 
@@ -575,8 +575,10 @@ def model_fn_builder(config: GroverConfig, init_checkpoint, learning_rate,
         tf.logging.info("*** Features ***")
         for name in sorted(features.keys()):
             tf.logging.info("  name = %s, shape = %s" % (name, features[name].shape))
-
-        input_ids = features["input_ids"]
+        try:
+            input_ids = features["input_ids"]
+        except:
+            input_ids = features["feature"]
 
         is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 

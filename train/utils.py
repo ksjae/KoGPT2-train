@@ -53,7 +53,7 @@ def assert_rank(tensor, expected_rank, name=None):
 
     actual_rank = tensor.shape.ndims
     if actual_rank not in expected_rank_dict:
-        scope_name = tf.get_variable_scope().name
+        scope_name = tf.compat.v1.get_variable_scope().name
         raise ValueError(
             "For the tensor `%s` in scope `%s`, the actual rank "
             "`%d` (shape = %s) is not equal to the expected rank `%s`" %
