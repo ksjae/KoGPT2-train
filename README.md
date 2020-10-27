@@ -1,4 +1,4 @@
-# **GPT3 Training code**
+# **GPT2 Training code**
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/imcaspar/gpt2-ml/blob/master/pretrained_model_demo.ipynb)
 [![GitHub](https://img.shields.io/github/license/ksjae/kogpt2-train)](https://github.com/ksjae/kogpt2-train)
@@ -15,7 +15,7 @@
 
 
 ## Pretrained Model
-GPT-3 Small to GPT-3 XL is tested. No guaranteed for larger models.
+GPT-2 Small to GPT-2 XL is tested. No guaranteed for larger models.
 
 
 ## Google Colab
