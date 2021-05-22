@@ -1,3 +1,5 @@
+This repository is **NOT actively maintained**. However, issues and security alerts will be monitored and potentially fixed.
+
 # **GPT2 Training code**
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/imcaspar/gpt2-ml/blob/master/pretrained_model_demo.ipynb)
@@ -15,7 +17,7 @@
 
 
 ## Pretrained Model
-GPT-2 Small to GPT-2 XL is tested. No guaranteed for larger models.
+GPT-2 Small to GPT-2 XL is tested. Not guaranteed to work for larger models.
 
 
 ## Google Colab
