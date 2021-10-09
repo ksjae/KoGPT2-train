@@ -12,7 +12,7 @@ This repository is **NOT actively maintained**. However, issues and security ale
 
 - [x] THE SCRIPT THAT SUPPORTS TPUS PROPERLY(<10% TPU idle)
 - [x] Fast tokenizer powered by HuggingFace/tokenizers
-- [x] Live demo [#](https://text.ksjit.com)
+- [] Live demo (**currently unavailable**) [#](https://text.ksjit.com)
 - [x] 1.5B GPT2 pretrained Korean model ( ~40G corpus )
 
 
