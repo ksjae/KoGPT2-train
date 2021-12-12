@@ -1,4 +1,5 @@
 This repository is **NOT actively maintained**. However, issues and security alerts will be monitored and potentially fixed.
+No, this is not directly compatible with HuggingFace transformers(and models based on it, **incl. Kakao GPT-3**). I do NOT provide active support requests with TF-torch model translations.
 
 # **GPT2 Training code**
 
